@@ -1,0 +1,14 @@
+<launch>
+  <!-- Arguments -->
+  
+  
+  <arg name="map_file" default="$(find map_server)/maps_cogniteam/cogniteam_office.yaml"/>
+
+   <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)" required = "true">
+
+  
+  </node>
+  
+
+</launch>

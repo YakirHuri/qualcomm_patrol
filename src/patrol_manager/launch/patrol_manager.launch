@@ -1,0 +1,30 @@
+<launch>
+  
+  <arg name="wait_duration" default="1.0" />  
+  
+  <arg name="waypoints_file_name" default="/home/rover/data_patrol/waypoints/waypoints_1.yaml" />
+
+  <arg name="initial_pose_x" default="0.0" />
+  <arg name="initial_pose_y" default="0.0" />
+  <arg name="initial_pose_a" default="0.0" />  
+  
+  
+  <node name="patrol_manager_node" pkg="patrol_manager" type="patrol_manager_node" output="screen" required="true">
+		
+		<param name="wait_duration" value="$(arg wait_duration)" />		
+
+		<rosparam param="waypoints" command="load" file="$(arg waypoints_file_name)"  />
+
+
+    <param name="initial_pose_x" value="$(arg initial_pose_x)"/>
+    <param name="initial_pose_y" value="$(arg initial_pose_y)"/>
+    <param name="initial_pose_a" value="$(arg initial_pose_a)"/>
+
+
+  </node>
+
+
+  
+	
+	
+</launch>

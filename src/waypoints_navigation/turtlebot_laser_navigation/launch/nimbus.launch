@@ -1,0 +1,36 @@
+<launch>
+  
+  <arg name="wait" default="0.0" />
+  <arg name="enable_rotate_in_place" default="false" /> 
+  <arg name="rotation_speed" default="0.1" /> 
+  <arg name="duration_rotation_seconds" default="5.0" /> 
+
+  <arg name="wait_for_ack_next_point" default="false" /> 
+	
+  
+
+  
+  
+  <node name="waypoint_driver_node" pkg="turtlebot_laser_navigation" type="waypoint_driver_node" output="screen" required="true">
+		
+		<param name="wait" value="$(arg wait)" />
+		
+		<param name="enable_rotate_in_place" value="$(arg enable_rotate_in_place)" />
+
+		<param name="rotation_speed" value="$(arg rotation_speed)" />
+
+		<param name="duration_rotation_seconds" value="$(arg duration_rotation_seconds)" />
+
+		<param name="wait_for_ack_next_point" value="$(arg wait_for_ack_next_point)" />
+
+
+
+		<rosparam param="waypoints" command="load" file="$(find turtlebot_laser_navigation)/waypoints/from_disk.yaml" />
+	</node>
+	
+	
+	<node name="waypoints_markers_publishers_node" pkg="waypoints_markers_publishers" type="waypoints_markers_publishers_node" output="screen" required="true">
+		
+		<rosparam param="waypoints" command="load" file="$(find turtlebot_laser_navigation)/waypoints/from_disk.yaml" />
+	</node>
+</launch>

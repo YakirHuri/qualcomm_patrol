@@ -1,0 +1,16 @@
+<launch>
+    <include file="$(find kobuki_launch)/launch/kobuki.launch"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find robot_setup)/launch/urg_lidar.launch"/>
+    <include file="$(find robot_setup)/launch/slam_gmapping.launch"/>
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+    <node pkg="tf" type="static_transform_publisher" name="base_laser_link" args="0.0 0.0 0.3 0 0 0 base_link laser 20" />
+    <node pkg="tf" type="static_transform_publisher" name="base_camera_link" args="0.25 0.0 0.25 0 0 0 base_link camera_link 20" />
+    
+    <!-- <node pkg="base_link_publisher" type="base_link_publisher_node.py" name="base_link_publisher_node"/>
+    <node pkg="camera_link_publisher" type="camera_link_publisher_node.py" name="camera_link_publisher_node"/>
+    <node pkg="laser_link_publisher" type="laser_link_publisher_node.py" name="laser_link_publisher_node"/>  -->
+
+
+
+</launch>

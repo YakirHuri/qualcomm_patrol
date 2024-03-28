@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>enable_auto_docking_cmd</name>
+  <version>1.0.0</version>
+  <description>exploration</description>
+  <maintainer email="yakir@cogniteam.com">Yakir Huri</maintainer>
+  <license>Proprietary</license>
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>

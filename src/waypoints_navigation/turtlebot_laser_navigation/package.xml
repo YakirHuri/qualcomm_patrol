@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>turtlebot_laser_navigation</name>
+  <version>1.0.0</version>
+  <description>The turtlebot_laser_navigation package</description>
+  <maintainer email="igor@cogniteam.com">Igor Makhtes</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>kobuki_msgs</build_depend>
+  <build_depend>amcl</build_depend>
+  <build_depend>move_base</build_depend>
+  <build_depend>turtlebot_navigation</build_depend>
+  <build_depend>move_base_msgs</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>kobuki_msgs</run_depend>
+  <run_depend>amcl</run_depend>
+  <run_depend>gmapping</run_depend>
+  <run_depend>hector_mapping</run_depend>
+  <run_depend>move_base</run_depend>
+  <run_depend>turtlebot_bringup</run_depend>
+  <run_depend>turtlebot_navigation</run_depend>
+  <run_depend>move_base_msgs</run_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>kobuki_msgs</run_depend>
+  <run_depend>yocs_velocity_smoother</run_depend>
+</package>

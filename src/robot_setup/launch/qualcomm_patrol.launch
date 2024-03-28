@@ -1,0 +1,51 @@
+<launch>
+
+    <arg name="initial_pose_x" default="0.277" />
+    <arg name="initial_pose_y" default="1.283" />
+    <arg name="initial_pose_a" default="2.240" /> 
+    <arg name="waypoints_file_name" default="$(find patrol_manager)/waypoints/waypoints.yaml" />
+
+    
+    <include file="$(find kobuki_launch)/launch/kobuki.launch"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find robot_setup)/launch/urg_lidar.launch"/>
+    
+    <!--PATROL MANAGER ########################################################################-->    
+    <include file="$(find patrol_manager)/launch/patrol_manager.launch">
+        
+        <arg name="waypoints_file_name" value="$(arg waypoints_file_name)"/>
+
+        <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+        <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+        <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+
+    
+    </include>
+    
+    <!--AMCL ##### -->
+    <include file="$(find amcl)/launch/pengo_amcl.launch">
+    
+        <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+        <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+        <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>    
+    </include>
+
+    <!--MAP SERVER ##################-->
+    <include file="$(find map_server)/launch/map_server.launch"/>
+    <!--MAP VIEW ##################-->
+    <include file="$(find map_server)/launch/map_view.launch"/>
+
+
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+    <node pkg="tf" type="static_transform_publisher" name="base_laser_link" args="0.0 0.0 0.3 0 0 0 base_link laser 20" />
+    <node pkg="tf" type="static_transform_publisher" name="base_link_to_base_footprint" args="0.0 0.0 0.0 0 0 0 base_link base_footprint 20" />
+
+    <node pkg="tf" type="static_transform_publisher" name="base_camera_link" args="0.25 0.0 0.25 0 0 0 base_link camera_link 20" />
+    
+    <node pkg="base_link_publisher" type="base_link_publisher_node.py" name="base_link_publisher_node"/>
+    <node pkg="camera_link_publisher" type="camera_link_publisher_node.py" name="camera_link_publisher_node"/>
+    <node pkg="laser_link_publisher" type="laser_link_publisher_node.py" name="laser_link_publisher_node"/> 
+
+
+
+</launch>

@@ -1,0 +1,3 @@
+# Default parameters for auto docking
+
+undocking_duration_seconds: 3.0

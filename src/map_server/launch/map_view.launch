@@ -1,0 +1,16 @@
+<launch>
+  <!-- Arguments -->
+  
+  <arg name="map_topic" default="map_view" />
+  <arg name="map_file" default="$(find map_server)/maps_cogniteam/cogniteam_map_view.yaml"/>
+
+   <!-- Map server -->
+  <node pkg="map_server" name="map_view" type="map_server" args="$(arg map_file)" required = "true">
+
+    <param name="map_topic" value="$(arg map_topic)" /> 
+
+  
+  </node>
+  
+
+</launch>
