@@ -47,7 +47,7 @@ struct WayPoint {
 
 	geometry_msgs::PoseStamped w_pose_;
 
-	bool status_ = false;
+	//bool status_ = false;
 };
 
 
@@ -427,52 +427,74 @@ public:
 
 				moveBaseController_.moveBaseClient_.waitForResult(ros::Duration(0.1));
 				
-				if( waypoints_[i].status_ ==  true ||
+				cerr<<" distDromRobot "<<distDromRobot<<endl;
+				if( /*waypoints_[i].status_ ==  true ||*/
 					moveBaseController_.moveBaseClient_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED 
 					||  moveBaseController_.moveBaseClient_.getState() == actionlib::SimpleClientGoalState::ABORTED
 					||  moveBaseController_.moveBaseClient_.getState() == actionlib::SimpleClientGoalState::REJECTED) {
 					
-					if( moveBaseController_.moveBaseClient_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED ||
-						waypoints_[i].status_ ==  true){
-						waypoints_[i].status_ = true;
-						cerr<<" goal reached !! "<<endl;
+					// if( moveBaseController_.moveBaseClient_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED ||
+					// 	waypoints_[i].status_ ==  true){
+					// 	waypoints_[i].status_ = true;
+					// 	cerr<<" goal reached !! "<<endl;
 						
-					} else {
+					// } else {
 
-						if (distDromRobot < 0.15)
-						{	
-							waypoints_[i].status_ = true;
-							moveBaseController_.moveBaseClient_.cancelGoal();
+					// 	if (distDromRobot < 0.15)
+					// 	{	
+					// 		waypoints_[i].status_ = true;
+					// 		moveBaseController_.moveBaseClient_.cancelGoal();
 
-						} else {
+					// 	} else {
 
-							waypoints_[i].status_ = false;
-						}						
+					// 		waypoints_[i].status_ = false;
+					// 	}						
 
-					}
+					// }
 
 					// if goal reached, wait for X seconds
-					if( waypoints_[i].status_){
+					auto start = ros::WallTime::now();
 
-						auto start = ros::WallTime::now();
+					while (ros::ok()) {
 
-						while (ros::ok()) {
+						ros::spinOnce();
 
-							ros::spinOnce();
+						auto end = ros::WallTime::now();
 
-							auto end = ros::WallTime::now();
-
-							auto duration = (end - start).toSec();
+						auto duration = (end - start).toSec();
 
 
-							if( duration > wait_duration_seconds_){
-								break;
-							}							
-						}
-					} 					
+						if( duration > wait_duration_seconds_){
+							break;
+						}							
+					}					 					
 
 					break;
-				} 
+
+				}  else if (distDromRobot < 0.15) {
+
+					moveBaseController_.moveBaseClient_.cancelGoal();
+
+					// if goal reached, wait for X seconds
+					auto start = ros::WallTime::now();
+
+					while (ros::ok()) {
+
+						ros::spinOnce();
+
+						auto end = ros::WallTime::now();
+
+						auto duration = (end - start).toSec();
+
+
+						if( duration > wait_duration_seconds_){
+							break;
+						}							
+					}
+
+					break;
+
+				}
 			}
 
 		}
@@ -498,11 +520,13 @@ private:
 
 	void initWaypoints(){
 
-		for (int i = 0; i < waypoints_.size(); i++){
-			
-			waypoints_[i].status_ = false;		
+		last_waypoint_ = 0;
 
-		}
+		// for (int i = 0; i < waypoints_.size(); i++){
+			
+		// 	waypoints_[i].status_ = false;		
+
+		// }
 	}
 
 
@@ -568,7 +592,7 @@ private:
 		
 		visualization_msgs::Marker marker;
 		marker.action = visualization_msgs::Marker::ADD;
-		marker.type = visualization_msgs::Marker::ARROW;
+		marker.type = visualization_msgs::Marker::SPHERE;
 		marker.header.frame_id = globalFrame_;
 		marker.header.stamp  = ros::Time::now(); 
 		marker.id = 1;
@@ -628,7 +652,7 @@ private:
 			visualization_msgs::Marker marker;
 			marker.lifetime = ros::Duration(100.0);
 			marker.action = visualization_msgs::Marker::ADD;
-			marker.type = visualization_msgs::Marker::ARROW;
+			marker.type = visualization_msgs::Marker::SPHERE;
 			marker.header.frame_id = globalFrame_;
 			marker.header.stamp  = ros::Time::now(); 
 			marker.id = i;
@@ -636,22 +660,27 @@ private:
 			marker.pose.position = waypoints_[i].w_pose_.pose.position;
 			marker.pose.position.z = 1.0;
 			marker.pose.orientation = waypoints_[i].w_pose_.pose.orientation;
-			marker.scale.x = 0.5;
-			marker.scale.y = 0.5;                
-			marker.scale.z = 0.5;
+			marker.scale.x = 0.3;
+			marker.scale.y = 0.3;                
+			marker.scale.z = 0.3;
 
-			if( waypoints_[i].status_){
-				marker.color.r = 0.0f;
+			marker.color.r = 0.0f;
 				marker.color.g = 1.0f;
 				marker.color.b = 0.0f;
 				marker.color.a = 1.0;
+
+			// if( waypoints_[i].status_){
+			// 	marker.color.r = 0.0f;
+			// 	marker.color.g = 1.0f;
+			// 	marker.color.b = 0.0f;
+			// 	marker.color.a = 1.0;
 		
-			} else {
-				marker.color.r = 1.0f;
-				marker.color.g = 0.0f;
-				marker.color.b = 0.0f;
-				marker.color.a = 1.0;
-			}
+			// } else {
+			// 	marker.color.r = 1.0f;
+			// 	marker.color.g = 0.0f;
+			// 	marker.color.b = 0.0f;
+			// 	marker.color.a = 1.0;
+			// }
 			
 			
 		
