@@ -1,1 +1,1 @@
-sudo docker build --no-cache -t pengo-base:latest .
+sudo docker build --no-cache -t pengo-base:demo .

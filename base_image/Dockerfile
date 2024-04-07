@@ -45,6 +45,3 @@ RUN apt install -y \
     ros-melodic-usb-cam \
     # hokuyo lidar driver installtaion
     ros-melodic-urg-node
-
-# Clone rplidar ros package
-# RUN git clone https://github.com/Slamtec/rplidar_ros.git src/rplidar_ros
