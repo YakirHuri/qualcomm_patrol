@@ -179,7 +179,6 @@ class MapServer
       // To make sure get a consistent time in simulation
       ros::Time::waitForValid();
       
-      mapOk_ = true;
       map_resp_.map.info.map_load_time = ros::Time::now();
       map_resp_.map.header.frame_id = frame_id;
       map_resp_.map.header.stamp = ros::Time::now();
@@ -188,6 +187,8 @@ class MapServer
                map_resp_.map.info.height,
                map_resp_.map.info.resolution);
       meta_data_message_ = map_resp_.map.info;
+      mapOk_ = true;
+
 
       service = n.advertiseService("static_map", &MapServer::mapCallback, this);
 
@@ -199,11 +200,12 @@ class MapServer
 		  private_nh.param("map_topic", map_topic_, std::string("map"));
       map_pub = n.advertise<nav_msgs::OccupancyGrid>(map_topic_, 1, true);
 
-      real_time_map_pub = n.advertise<nav_msgs::OccupancyGrid>(std::string(map_topic_+"_real_time"), 1, true);
+      std::string map_realtime_topic = std::string(map_topic_+"_real_time");
+      real_time_map_pub = n.advertise<nav_msgs::OccupancyGrid>(map_realtime_topic, 1, true);
 
       map_pub.publish( map_resp_.map );
       
-      double rate_;
+      double rate_ = 1;
       
       ros::NodeHandle nodePrivate("~");
 
@@ -240,8 +242,16 @@ class MapServer
 
     void updateTimerCallback(const ros::TimerEvent&) {
 
-      if(mapOk_)
-        real_time_map_pub.publish( map_resp_.map );
+       try
+      {
+        if(mapOk_ && !map_resp_.map.data.empty())
+          real_time_map_pub.publish( map_resp_.map );
+      }
+      catch (std::runtime_error e)
+      {
+          ROS_ERROR("%s", e.what());
+      }
+     
 
     }
 

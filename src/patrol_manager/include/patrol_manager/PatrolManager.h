@@ -91,16 +91,27 @@ public:
 		goals_marker_array_publisher_ =
         	node.advertise<visualization_msgs::MarkerArray>("/waypoints_markers", 10);		
 
-	
+		patrol_state_publisher_ =
+        	node.advertise<std_msgs::String>("/patrol_state", 10);	
+
+		initial_point_marker_publisher_ =
+        	node.advertise<visualization_msgs::Marker>("/initial_point_marker", 10);			
+
 
 		//subs
 		action_sub_ = node.subscribe<std_msgs::String>("/action", 1, 
 			&PatrolManager::actionCallback, this);	
 
-		setState(IDLE);
+		setPatrolState(IDLE);
 
-		
+		waypointsTimer_ = node.createTimer(ros::Rate(1), 
+                &PatrolManager::waypointsTimerCallback, this);
 
+		robotStateTimer_ = node.createTimer(ros::Rate(1), 
+                &PatrolManager::robotStateTimerCallback, this);
+
+		initialPointTimer_ = node.createTimer(ros::Rate(1), 
+                &PatrolManager::initialPointCallback, this);			
 	
 	}
 
@@ -112,11 +123,83 @@ public:
     {
 
         cerr << " user pressed CTRL+C " << endl;
+    }
+
+	void waypointsTimerCallback(const ros::TimerEvent&) {
+
+      try
+      {
+        publishWaypointsWithStatus();
+      }
+      catch (std::runtime_error e)
+      {
+          ROS_ERROR("%s", e.what());
+      }
+     
+
     }	
 
-	void setState(RobotState state)
+	void initialPointCallback(const ros::TimerEvent&) {
+
+      try
+      {
+        publishInitialPose();
+
+      }
+      catch (std::runtime_error e)
+      {
+          ROS_ERROR("%s", e.what());
+      }
+     
+
+    }	
+
+	void robotStateTimerCallback(const ros::TimerEvent&) {
+
+      try
+      {	
+		string patrolStateStr = "none";
+		switch (patrolState_)
+		{
+			case IDLE: {
+				patrolStateStr = "IDLE";
+				break;
+				
+			}
+			case PATROL: {
+				patrolStateStr = "PATROL";	
+				break;			
+			}
+			case STOP: {
+				patrolStateStr = "STOP";
+				break;					
+			}			
+			case CONTINUE: {
+				patrolStateStr = "CONTINUE";
+				break;
+			}
+			case GO_HOME: {
+				patrolStateStr = "GO_HOME";
+				break;
+			}
+						
+		}
+
+		std_msgs::String msg;
+		msg.data = patrolStateStr;
+        patrol_state_publisher_.publish(msg);
+      }
+      catch (std::runtime_error e)
+      {
+          ROS_ERROR("%s", e.what());
+      }
+     
+
+    }	
+
+	void setPatrolState(RobotState state)
 	{	
-		robotState_ = state;		
+		patrolState_ = state;		
 	}
 
 	bool checkLocalizationOk() {
@@ -162,50 +245,64 @@ public:
 		
 		ROS_INFO("Connected to /move_base !!!!!!!!!!!!!!\n");
 
-		publishInitialPose();
-
+		ros::Rate loop_rate(5);
 		while( ros::ok() ) {
 
 			ros::spinOnce();
 
-			switch (robotState_)
+			switch (patrolState_)
 			{
 				case IDLE: {
 
 					if	( lastAction_ =="start_patrol") {
 
-						lastAction_ = "none";	
-						setState(PATROL);
+						initLastAction();	
+
+						setPatrolState(PATROL);
+						
 						break;
 
-					} else {
-						setState(IDLE);
+					}
+					else if	( lastAction_ =="go_home") {
+
+						initLastAction();	
+
+						setPatrolState(GO_HOME);
+						
+						break;
+
+					}
+					else {
+						
+						initLastAction();
+
+						setPatrolState(IDLE);
+						
 						break;
 					}
 					
 				}
 				case PATROL: {
-
+					
+					//each iteration is 1 round of navigation	
 					while( ros::ok() ) {
 
 						ros::spinOnce();
 						cerr<<"PATROL "<<endl;
 
 						auto state = runPatrolRound();
+						initLastAction();	
 
 						if (state == STOP){
-							setState(STOP);
-							lastAction_ = "none";	
+							setPatrolState(STOP);
 							break;
 						}
 
 						if (state == GO_HOME){
-							setState(GO_HOME);
+							setPatrolState(GO_HOME);
 							last_waypoint_ = 0;
-							lastAction_ = "none";	
 							break;
 						} 
-						lastAction_ = "none";	
 						initWaypoints();
 					}					
 				}
@@ -217,51 +314,49 @@ public:
 
 						if	( lastAction_ =="go_home") {
 							cerr<<" GOT go_home - > GO_HOME "<<endl;
-							lastAction_ = "none";	
+							initLastAction();	
 							last_waypoint_ = 0;
 
-							setState(GO_HOME);
+							setPatrolState(GO_HOME);
 							break;
 
 						} 
 						
 						if ( lastAction_ =="continue") { 
 							cerr<<" GOT continue - > CONTINUE "<<endl;
-							lastAction_ = "none";	
-							setState(CONTINUE);
+							initLastAction();	
+							setPatrolState(CONTINUE);
 							break;
 						}
 
-						setState(STOP);
-						lastAction_ = "none";
+						setPatrolState(STOP);
+						initLastAction();
 					}
 
-					lastAction_ = "none";
+					initLastAction();
 					break;
 					
 				}
 				
 				case CONTINUE: {
 					cerr<<"CONTINUE "<<endl;	
-					setState(PATROL);
+					setPatrolState(PATROL);
 					break;
 				}
 				case GO_HOME: {
 					cerr<<"GO_HOME "<<endl;
 					last_waypoint_ = 0;
 
-					if ( backToStart() == true){
-						lastAction_ = "none";	
-						setState(IDLE);
+					if ( goHome() == true){
+						setPatrolState(IDLE);
 						break;
 					}
-					lastAction_ = "none";	
-					// setState(GO_HOME);
-					// break;
-					
+					initLastAction();				
 				}
 						
 			}
+
+			loop_rate.sleep();
 
 
 		}
@@ -269,6 +364,10 @@ public:
 
 	}
 
+	void initLastAction(){
+
+		lastAction_ = "none";
+	}
 	RobotState runPatrolRound(){		
 
 		//verify amcl works and the robot have location
@@ -285,9 +384,6 @@ public:
 		}		
 
 
-		publishWaypointsWithStatus();
-
-
 		for (int i = last_waypoint_; i < waypoints_.size(); i++){
 			
 			bool reachedGoal = false;		
@@ -302,7 +398,6 @@ public:
 				updateRobotLocation();
 
 				if	( lastAction_ =="stop") {
-					lastAction_ = "none";	
 
 					last_waypoint_ = (i) % waypoints_.size();
 
@@ -314,7 +409,6 @@ public:
 					return state;
 
 				} else if ( lastAction_ == "go_home") {
-					lastAction_ = "none";	
 
 					last_waypoint_ = 0;
 
@@ -357,8 +451,6 @@ public:
 
 					}
 
-					publishWaypointsWithStatus();
-
 					// if goal reached, wait for X seconds
 					if( waypoints_[i].status_){
 
@@ -388,7 +480,6 @@ public:
 		cerr<<"FINSIHED ROUND !!!! "<<endl;
 
 		RobotState state = PATROL;
-		lastAction_ = "none";	
 		last_waypoint_ = 0;
 		return state;
 	}
@@ -415,7 +506,7 @@ private:
 	}
 
 
-	bool backToStart() {
+	bool goHome() {
 
 		setYawTolerance(0.0);		
 
@@ -474,63 +565,29 @@ private:
 	}
 
 	void publishInitialPose() {
-
-		{
-			visualization_msgs::Marker marker;
-			marker.lifetime = ros::Duration(0.1);
-			marker.action = visualization_msgs::Marker::ADD;
-			marker.type = visualization_msgs::Marker::ARROW;
-			marker.header.frame_id = "map";
-			marker.header.stamp  = ros::Time::now(); 
-			marker.id = rand();
-			marker.pose.position.x =  initial_pose_x_;
-			marker.pose.position.y = initial_pose_y_;
-			marker.pose.position.z = 0;
-
-			marker.pose.orientation = tf::createQuaternionMsgFromYaw(initial_pose_a_);
-			marker.scale.x = 0.2;
-			marker.scale.y = 0.2;                
-			marker.scale.z = 0.2;
-
-			marker.color.r = 0.0f;
-			marker.color.g = 0.0f;
-			marker.color.b = 0.0f;
-			marker.color.a = 1.0;
-
-			marker.lifetime = ros::Duration(500);
-
-
-		}
 		
+		visualization_msgs::Marker marker;
+		marker.action = visualization_msgs::Marker::ADD;
+		marker.type = visualization_msgs::Marker::ARROW;
+		marker.header.frame_id = globalFrame_;
+		marker.header.stamp  = ros::Time::now(); 
+		marker.id = 1;
+		marker.ns ="initial_point";
+		marker.pose.position.x = initial_pose_x_;
+		marker.pose.position.y = initial_pose_y_;
+		marker.pose.position.z = 1.0;
 
-		/// BACK
+		marker.pose.orientation = tf::createQuaternionMsgFromYaw(initial_pose_a_);
+		marker.scale.x = 0.5;
+		marker.scale.y = 0.5;                
+		marker.scale.z = 0.5;
 
-		{
-			visualization_msgs::Marker marker;
-			marker.lifetime = ros::Duration(0.1);
-			marker.action = visualization_msgs::Marker::ADD;
-			marker.type = visualization_msgs::Marker::ARROW;
-			marker.header.frame_id = initialWaypoint.header.frame_id;
-			marker.header.stamp  = ros::Time::now(); 
-			marker.id = rand();
-			marker.pose.position    =  initialWaypoint.pose.position;			
-			marker.pose.orientation = initialWaypoint.pose.orientation;
-			marker.scale.x = 0.2;
-			marker.scale.y = 0.2;                
-			marker.scale.z = 0.2;
+		marker.color.r = 0.0f;
+		marker.color.g = 0.0f;
+		marker.color.b = 1.0f;
+		marker.color.a = 1.0;
 
-			marker.color.r = 210.0 / 255.0;
-			marker.color.g = 105.0 / 255.0;
-			marker.color.b = 30.0 / 255.0;
-			marker.color.a = 1.0;
-
-			
-
-			marker.lifetime = ros::Duration(500);
-
-		}
-
-		
+		initial_point_marker_publisher_.publish(marker);	
 
 	}
 
@@ -572,14 +629,16 @@ private:
 			marker.lifetime = ros::Duration(100.0);
 			marker.action = visualization_msgs::Marker::ADD;
 			marker.type = visualization_msgs::Marker::ARROW;
-			marker.header.frame_id = "map";
+			marker.header.frame_id = globalFrame_;
 			marker.header.stamp  = ros::Time::now(); 
 			marker.id = i;
+			marker.ns = "waypoints";
 			marker.pose.position = waypoints_[i].w_pose_.pose.position;
+			marker.pose.position.z = 1.0;
 			marker.pose.orientation = waypoints_[i].w_pose_.pose.orientation;
-			marker.scale.x = 0.2;
-			marker.scale.y = 0.2;                
-			marker.scale.z = 0.2;
+			marker.scale.x = 0.5;
+			marker.scale.y = 0.5;                
+			marker.scale.z = 0.5;
 
 			if( waypoints_[i].status_){
 				marker.color.r = 0.0f;
@@ -643,11 +702,18 @@ private:
 
 	ros::NodeHandle node;
 
+	ros::Timer waypointsTimer_;
+
+	ros::Timer robotStateTimer_;
+
+	ros::Timer initialPointTimer_;
+
+
 	geometry_msgs::PoseStamped robotPose_; // on map frame
 
 	geometry_msgs::PoseStamped initialWaypoint;
 
-	RobotState robotState_ ;
+	RobotState patrolState_ ;
 	
 	//move-base
 	MoveBaseController moveBaseController_;
@@ -669,9 +735,9 @@ private:
 
 	string lastAction_ = "none";
 
-	ros::Publisher	twistPub_ ;
 	ros::Publisher goals_marker_array_publisher_ ;
-	
+	ros::Publisher patrol_state_publisher_;
+	ros::Publisher initial_point_marker_publisher_;
 
 	ros::Subscriber action_sub_;
 
