@@ -199,7 +199,7 @@ class MapServer
 		  private_nh.param("map_topic", map_topic_, std::string("map"));
       map_pub = n.advertise<nav_msgs::OccupancyGrid>(map_topic_, 1, true);
 
-      // real_time_map_pub = n.advertise<nav_msgs::OccupancyGrid>("map_view", 1, true);
+      real_time_map_pub = n.advertise<nav_msgs::OccupancyGrid>(std::string(map_topic_+"_real_time"), 1, true);
 
       map_pub.publish( map_resp_.map );
       
@@ -207,15 +207,15 @@ class MapServer
       
       ros::NodeHandle nodePrivate("~");
 
-      // updateTimer_ = n.createTimer(ros::Rate(rate_), 
-      //           &MapServer::updateTimerCallback, this);
+      updateTimer_ = n.createTimer(ros::Rate(rate_), 
+                &MapServer::updateTimerCallback, this);
     }
 
   private:
     ros::NodeHandle n;
     ros::Publisher map_pub;
     std::string map_topic_ = "map";
-    // ros::Publisher real_time_map_pub; //for nimbus
+    ros::Publisher real_time_map_pub; //for nimbus
 
     ros::Publisher metadata_pub;
     ros::ServiceServer service;
@@ -238,12 +238,12 @@ class MapServer
       return true;
     }
 
-    // void updateTimerCallback(const ros::TimerEvent&) {
+    void updateTimerCallback(const ros::TimerEvent&) {
 
-    //   if(mapOk_)
-    //     real_time_map_pub.publish( map_resp_.map );
+      if(mapOk_)
+        real_time_map_pub.publish( map_resp_.map );
 
-    // }
+    }
 
     /** The map data is cached here, to be sent out to service callers
      */
