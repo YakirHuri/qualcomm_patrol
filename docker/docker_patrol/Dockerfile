@@ -22,4 +22,3 @@ WORKDIR /root/qualcomm_ws
 # ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/melodic/setup.bash && source /pengo-setup/devel/setup.bash && exec $0 $@"]
 
 # CMD ["roslaunch", "robot_setup", "robot_setup.launch"]
-

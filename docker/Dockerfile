@@ -45,3 +45,8 @@ RUN apt install -y \
     ros-melodic-usb-cam \
     # hokuyo lidar driver installtaion
     ros-melodic-urg-node
+
+
+
+
+
